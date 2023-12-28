@@ -70,3 +70,58 @@ int inflate(z_compressed_stream) {
     return zlib_inflate(z_compressed_stream);
 }
 ```
+
+### [htslib specific] Tabix checks for exact format by reading ahead
+
+In later versions (post 1.2) of htslib, Tabix's `decompress_peek(_gz)` function opens the bgzipped file just to determine file format.
+This fails under the `LD_PRELOAD=zstd_preload.so` scheme for not entirely clear reasons (probably header vs. payload differentiation).
+Though one problem appears to be `decompress_peek` harcodes the header type to be gzip (31) rather than bgzip (-15) in its call to `inflateInit2`.
+
+My workaround here is to flag when the gzip header type is passed in (31) as a signal that `decompress_peek` is being called just to determine file type.
+I then hard code a stub BED file formatted string that most recent versions of Tabix will accept as a BED file.
+In addition, I adjust the stream buffer sizes to signal a successful stream read/decompression while not actually doing one:
+
+
+```
+    typedef int (*orig_inflateInit2)(z_streamp strm, int  windowBits,
+                                    const char *version, int stream_size);
+    static orig_inflateInit2 zlib_inflateInit2;
+    static int peek_gz_call = 0;
+    ZEXTERN int ZEXPORT inflateInit2_ OF((z_streamp strm, int  windowBits,
+                          const char *version, int stream_size))
+    {
+        if(!zlib_inflateInit2) {
+            //31 byte header is gzip, this will never be the case for bgzip (15 byte header) applications
+            if(windowBits == 31) {
+                windowBits = -15;
+                peek_gz_call = 1;
+            }
+            ...
+    }
+```
+
+and then within the `ZEXTERN int ZEXPORT inflate OF((z_streamp strm, int flush))` function in my modified version of FB/Meta's `zlibWrapper/zstd_zlibwrapper.c`:
+
+```
+if(peek_gz_call == 1) {
+    //reset to avoid coming here once the file is really being inflated
+    peek_gz_call = 0;
+    //hack the dest buffer (had the header in it previously)
+    //to force htslib to choose BED format
+    //according to htslib's tabix.c:284
+    //vcf, sam, bed, and text_format are handled the same way for querying regions
+    //ONLY FOR FILE TYPE DETERMINATION!
+    strm->next_out[0]='c';
+    strm->next_out[1]='\t';
+    strm->next_out[2]='1';
+    strm->next_out[3]='\t';
+    strm->next_out[4]='1';
+    strm->next_out[5]='\t';
+    strm->next_out[6]='1';
+    //for > hts lib 1.13 (e.g. 1.19)
+    strm->next_out++;
+    //for <= hts lib 1.13 (e.g. 1.11)
+    strm->total_out = 1;
+    return Z_STREAM_END;
+}
+```
