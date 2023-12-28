@@ -1,9 +1,13 @@
 # ld_preload_tutorial
-Overview of how to use LD_PRELOAD using ZLIB wrapper for ZSTD compression
+Overview of how to use LD_PRELOAD using ZLIB wrapper for ZSTD compression in the service of Genomics.
 
-Current version works for ZSTD v1.3.4 and most versions of Tabix/bgzip (tested with 1.19).
+Current version works for ZSTD v1.3.4 and most versions of htslib Tabix/Bgzip (tested with 1.19).
 
 Warning: this is very prototype code, meant for example purposes only, use at your own risk!
+
+Please see [this modified version](modified_zstd_files/zstd_zlibwrapper.c.preload_v1.3.4) of FB/Meta's zlibWrapper code that has all of the changes I describe below to make the LD_PRELOAD hack work with Tabix/Bgzip.
+
+Also, you'll need to modify FB/Meta's Makefiles (both in the toplevel zstd directory and in the zlibWrapper directory), see my versions for 1.3.3/4 [here](modified_zstd_files/Makefile.zstd_v1.3.4) and [here](modified_zstd_files/Makefile.zlibWrapper_v1.3.4).
 
 ## How it works
 
@@ -151,6 +155,13 @@ BGZstd compression: 10.568s, 339,276,637 bytes, 2.86 ratio
 * tabix query: 0.540s
 
 BGZstd has 5.4x faster compression, a slightly better compression ratio, slightly faster decompression, slightly faster tabix indexing but not querying.
+
+## References
+
+While LD_PRELOAD info can probably be found in a variety of places, I primarily used the following links:
+
+* https://rafalcieslak.wordpress.com/2013/04/02/dynamic-linker-tricks-using-ld_preload-to-cheat-inject-features-and-investigate-programs/
+* https://stackoverflow.com/questions/42336616/fixing-the-recursive-call-to-malloc-with-ld-preload
 
 ## Acknowlegements
 
