@@ -3,6 +3,8 @@ Overview of how to use LD_PRELOAD using ZLIB wrapper for ZSTD compression
 
 Current version works for ZSTD v1.3.4 and most versions of Tabix/bgzip (tested with 1.19).
 
+Warning: this is very prototype code, meant for example purposes only, use at your own risk!
+
 ## How it works
 
 Example function: `inflate(compressed_stream)`
@@ -149,3 +151,12 @@ BGZstd compression: 10.568s, 339,276,637 bytes, 2.86 ratio
 * tabix query: 0.540s
 
 BGZstd has 5.4x faster compression, a slightly better compression ratio, slightly faster decompression, slightly faster tabix indexing but not querying.
+
+## Acknowlegements
+
+Thanks to Brian Craft for the insight on the LD_PRELOAD trick.
+Obviously, big thanks to FB/Meta for the excellent, open source ZSTD as well as going the extra mile with the zlibWrapper code!
+
+## Legal
+
+All ZSTD-related code (including the zlibWrapper) is owned by FB/Meta (see zstd/LICENSE).
