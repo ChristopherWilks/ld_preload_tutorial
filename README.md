@@ -132,3 +132,20 @@ if(peek_gz_call == 1) {
     return Z_STREAM_END;
 }
 ```
+## A Very Janky Benchmark
+
+Supermouse junctions (818,763) in Snaptron format 969,176,980 bytes (~1 GB), tabix query is all of chr2, 67346 junctions, ~80 MBs uncompressed
+
+BGZip compression: 57.215s, 378,339,449 bytes, 2.56 ratio
+
+* decompression: 3.463s
+* tabix indexing: 4.343s
+* tabix query: 0.527s
+
+BGZstd compression: 10.568s, 339,276,637 bytes, 2.86 ratio
+
+* decompression: 2.924s
+* tabix indexing: 3.474s
+* tabix query: 0.540s
+
+BGZstd has 5.4x faster compression, a slightly better compression ratio, slightly faster decompression, slightly faster tabix indexing but not querying.
