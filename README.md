@@ -1,13 +1,15 @@
 # ld_preload_tutorial
 Overview of how to use LD_PRELOAD using ZLIB wrapper for ZSTD compression in the service of Genomics.
 
-Current version works for ZSTD v1.3.4 and most versions of htslib Tabix/Bgzip (tested with 1.19).
+The main goal is to leverage the faster compression of ZSTD while not having to modify existing tools (e.g. Tabix/Bgzip).
+
+Current version works should work with ZSTD v1.3.4 and most versions of htslib Tabix/Bgzip (tested with 1.19).
 
 Warning: this is very prototype code, meant for example purposes only, use at your own risk!
 
 Please see [this modified version](modified_zstd_files/zstd_zlibwrapper.c.preload_v1.3.4) of FB/Meta's zlibWrapper code that has all of the changes I describe below to make the LD_PRELOAD hack work with Tabix/Bgzip.
 
-Also, you'll need to modify FB/Meta's Makefiles (both in the toplevel zstd directory and in the zlibWrapper directory), see my versions for 1.3.3/4 [here](modified_zstd_files/Makefile.zstd_v1.3.4) and [here](modified_zstd_files/Makefile.zlibWrapper_v1.3.4).
+Also, you'll need to modify FB/Meta's Makefiles to generate the `zstd_preload.so` library file (both in the toplevel zstd directory and in the zlibWrapper directory), see my versions for 1.3.4 [here](modified_zstd_files/Makefile.zstd_v1.3.4) and [here](modified_zstd_files/Makefile.zlibWrapper_v1.3.4).
 
 ## How it works
 
@@ -19,7 +21,7 @@ int inflate(compressed_stream) {
 }
 ```
 
-In the ZSTD ZLIBWrapper (compiled into the target application, e.g. Samtools):
+In the ZSTD ZLIBWrapper (compiled into the target application, e.g. Tabix/Bgzip):
 
 ```
 int z_inflate(z_compressed_stream) {
@@ -138,6 +140,9 @@ if(peek_gz_call == 1) {
     return Z_STREAM_END;
 }
 ```
+The above hack works for BED files, but will probably work for `vcf`, `sam`, and `text_format` types as well if all you want is to query them with Tabix (not tested!).
+If you want `bcf`, `bam` or something else (e.g. FASTA/Q), you'll probably need to change/add to the above to support what Tabix is currently expecting in the a sample line of the payload of your file.
+
 ## A Very Janky Benchmark
 
 Supermouse junctions (818,763) in Snaptron format 969,176,980 bytes (~1 GB), tabix query is all of chr2, 67346 junctions, ~80 MBs uncompressed
@@ -170,4 +175,4 @@ Obviously, big thanks to FB/Meta for the excellent, open source ZSTD as well as 
 
 ## Legal
 
-All ZSTD-related code (including the zlibWrapper) is owned by FB/Meta (see zstd/LICENSE).
+All ZSTD-related code (including the zlibWrapper) is owned by FB/Meta, see [zstd's license](https://github.com/facebook/zstd/blob/dev/LICENSE).
