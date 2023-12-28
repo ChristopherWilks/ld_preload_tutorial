@@ -27,12 +27,19 @@ int inflate(z_compressed_stream) {
     return z_inflate(z_compressed_stream);
 }
 ```
-
-Then run your *unmodified* command (e.g. `bgzip`):
-
-`LD_PRELOAD=/path/to/zstd_preload.so bgzip tabular_data.tsv`
-
 *also includes the code in the ZSTD  ZLIBWrapper
+
+Then run your *unmodified* command(s) (e.g. `bgzip` for block-gzipping and `tabix` for indexing/querying):
+
+```
+export LD_PRELOAD=/path/to/zstd_preload.so
+bgzip tabular_data.tsv
+tabix -s<seq_col> -b<start_col> -e<end_col> tabular_data.tsv.gz
+tabix tabular_data.tsv.gz chromosome:start-end
+```
+
+you can also use it inline with a single command:
+`LD_PRELOAD=/path/to/zstd_preload.so bgzip tabular_data.tsv`
 
 ## Pitfalls
 
